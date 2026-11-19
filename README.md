@@ -9,6 +9,8 @@ A Chrome extension that buffers the Twitch or YouTube stream you're watching and
 
 Chrome 116+ · Manifest V3 · works with [ClipForge](https://github.com/generalworksit/clipforge) on your PC
 
+[![Stars](https://img.shields.io/github/stars/generalworksit/clipforge-live?style=flat&color=ffd23f&labelColor=1c1c1e)](https://github.com/generalworksit/clipforge-live/stargazers) [![License: MIT](https://img.shields.io/badge/license-MIT-ffd23f?labelColor=1c1c1e)](LICENSE) [![Last commit](https://img.shields.io/github/last-commit/generalworksit/clipforge-live?color=ffd23f&labelColor=1c1c1e)](https://github.com/generalworksit/clipforge-live/commits/main)
+
 </div>
 
 <table>
@@ -108,4 +110,26 @@ Plain JavaScript, no build step. Edit, then press the reload icon on the extensi
 | `content.js` | reads new chat lines and the player position on Twitch and YouTube |
 | `popup.*` | the popup UI |
 
-Tests live in the ClipForge repo (`tests/live_*.mjs`, `tests/browser_popup.py`, `tests/browser_live.py`).
+Tests live in the [ClipForge repo](https://github.com/generalworksit/clipforge/tree/main/tests) (`tests/live_*.mjs`, `tests/browser_popup.py`, `tests/browser_live.py`).
+
+## Related projects
+
+| | |
+|---|---|
+| **[ClipForge](https://github.com/generalworksit/clipforge)** | The app this extension sends clips to: clip maker with captions, downloader, subtitles, converter, AI voice and the Live clips inbox. Required, runs on your PC |
+
+## Star history
+
+<a href="https://star-history.com/#generalworksit/clipforge&generalworksit/clipforge-live&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=generalworksit/clipforge,generalworksit/clipforge-live&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=generalworksit/clipforge,generalworksit/clipforge-live&type=Date" />
+   <img alt="Star history of ClipForge and ClipForge Live" src="https://api.star-history.com/svg?repos=generalworksit/clipforge,generalworksit/clipforge-live&type=Date" width="100%" />
+ </picture>
+</a>
+
+The chart updates on its own as people star either repo.
+
+## License
+
+[MIT](LICENSE)
