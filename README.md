@@ -15,7 +15,7 @@ Chrome 116+ · Manifest V3 · works with [ClipForge](https://github.com/generalw
 
 <table>
 <tr>
-<td width="380"><img src="docs/popup.png" width="380" alt="ClipForge Live popup during a capture"></td>
+<td width="380"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/popup-dark.png"><img src="docs/popup.png" width="380" alt="ClipForge Live popup during a capture"></picture></td>
 <td>
 
 **What you see while it runs**
@@ -24,6 +24,7 @@ Chrome 116+ · Manifest V3 · works with [ClipForge](https://github.com/generalw
 - **Source line.** Which stream is being captured, so you never record the wrong tab
 - **This capture.** Every clip from the session with its time, reason, length and whether it reached ClipForge
 - **Connection dot** in the top bar: green when the app is reachable
+- **Light and dark** follow your system setting
 
 Nothing to watch closely though. Leave the tab open and clips arrive in ClipForge's **Live clips** inbox on their own.
 

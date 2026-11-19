@@ -1,17 +1,34 @@
 /* ClipForge Live popup. Same graphite ramp and playhead yellow as the app. */
 :root {
   color-scheme: dark;
-  --bg: #111112; --s1: #161617; --s2: #1c1c1e; --s3: #252527;
-  --line: rgba(237, 237, 237, .08); --line-2: rgba(237, 237, 237, .14);
-  --ink: #ededed; --ink-2: #a1a1a6; --muted: #8a8a90;
-  --accent: #ffd23f; --on-accent: #15110a; --red: #e5484d; --green: #4cc38a;
+  --bg: #0b1120; --s1: rgba(148, 170, 220, .07); --s2: rgba(148, 170, 220, .11); --s3: rgba(148, 170, 220, .18);
+  --line: rgba(190, 210, 255, .09); --line-2: rgba(190, 210, 255, .16);
+  --ink: #e8eef9; --ink-2: #aab6cc; --muted: #8592ab;
+  --accent: #8fb0ff; --on-accent: #ffffff; --red: #ff6b76; --green: #5fd3a0;
+  --accent-grad: linear-gradient(135deg, #6d8cff 0%, #4a9fe6 100%); --accent-glow: 0 8px 22px -8px rgba(90, 140, 255, .6);
+  --bar: rgba(190, 210, 255, .28); --glass-border: rgba(190, 210, 255, .12);
+  --glass-shadow: 0 12px 36px -18px rgba(0, 0, 0, .7), inset 0 1px 0 rgba(255, 255, 255, .06);
+  --page-bg: radial-gradient(80% 50% at 100% 0%, rgba(86, 128, 230, .25), transparent 70%), radial-gradient(70% 40% at 0% 100%, rgba(120, 110, 220, .14), transparent 70%), #0b1120;
   --ease: cubic-bezier(.22, 1, .36, 1);
   --mono: "Cascadia Mono", Consolas, ui-monospace, monospace;
   font: 13px/1.5 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   background: var(--bg); color: var(--ink);
 }
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg: #edf2f9; --s1: rgba(255, 255, 255, .6); --s2: rgba(255, 255, 255, .85); --s3: rgba(222, 231, 246, .95);
+    --line: rgba(60, 90, 150, .10); --line-2: rgba(60, 90, 150, .18);
+    --ink: #1a2335; --ink-2: #465268; --muted: #637089;
+    --accent: #4a6fe8; --red: #d63c47; --green: #17905e;
+    --accent-grad: linear-gradient(135deg, #5a7bf0 0%, #3b8fd8 100%); --accent-glow: 0 8px 20px -8px rgba(70, 110, 230, .55);
+    --bar: rgba(60, 90, 150, .22); --glass-border: rgba(255, 255, 255, .9);
+    --glass-shadow: 0 12px 32px -16px rgba(50, 80, 150, .35), inset 0 1px 0 rgba(255, 255, 255, .95);
+    --page-bg: radial-gradient(80% 50% at 100% 0%, #d3e1f8, transparent 70%), radial-gradient(70% 40% at 0% 100%, #dfe1f7, transparent 70%), linear-gradient(180deg, #eef3fa, #e5ecf7);
+  }
+}
 /* Chrome sizes the popup from the document; give html a fixed width so it never collapses */
-html { width: 380px; min-width: 380px; max-height: 600px; overflow-y: auto; background: var(--bg); }
+html { width: 380px; min-width: 380px; max-height: 600px; overflow-y: auto; background: var(--page-bg); background-attachment: fixed; }
 * { box-sizing: border-box; }
 body { width: 100%; margin: 0; }
 button, input { font: inherit; }
@@ -36,8 +53,8 @@ button:disabled { opacity: .45; cursor: default; }
 main { padding: 16px; }
 
 /* status panel: the one rich element, a small recorder readout */
-.monitor { padding: 16px; background: var(--s1); border: 1px solid var(--line); border-radius: 12px; transition: border-color .2s var(--ease); }
-.monitor[data-state="moment"] { border-color: rgba(255, 210, 63, .45); }
+.monitor { padding: 16px; background: var(--s1); border: 1px solid var(--glass-border); border-radius: 18px; box-shadow: var(--glass-shadow); backdrop-filter: blur(16px) saturate(140%); transition: border-color .2s var(--ease); }
+.monitor[data-state="moment"] { border-color: var(--accent); }
 .monitor-top { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
 .status-label { display: flex; gap: 8px; align-items: center; }
 .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
@@ -53,9 +70,13 @@ h1 { font-size: 20px; line-height: 1.25; font-weight: 600; letter-spacing: -.01e
 .spark { display: block; width: 100%; height: 44px; }
 .spark rect { transition: height .25s var(--ease), y .25s var(--ease); }
 .spark .empty { fill: var(--s3); }
-.spark .base { fill: #4a4a50; }
+.spark .base { fill: var(--bar); }
 .spark .now { fill: var(--ink-2); }
 .spark .hot { fill: var(--accent); }
+.topbar { background: var(--s1); backdrop-filter: blur(16px); }
+.clips ol, .segmented { border-color: var(--glass-border); box-shadow: var(--glass-shadow); }
+input:focus { box-shadow: 0 0 0 3px rgba(90, 130, 240, .18); }
+.check input { accent-color: var(--accent); }
 .source { display: flex; gap: 8px; align-items: baseline; margin: 12px 0 0; font-size: 12px; color: var(--ink-2); min-width: 0; }
 .source #source-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .platform { flex: none; font: 11px var(--mono); color: var(--muted); padding: 0 6px; border: 1px solid var(--line-2); border-radius: 4px; }
@@ -67,12 +88,12 @@ h1 { font-size: 20px; line-height: 1.25; font-weight: 600; letter-spacing: -.01e
 .capture-actions { display: flex; gap: 8px; margin-top: 12px; }
 .capture-actions .primary { flex: 1; }
 .primary, .secondary { min-height: 40px; border: 1px solid transparent; border-radius: 8px; padding: 8px 12px; font-weight: 600; }
-.primary { background: var(--accent); color: var(--on-accent); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25); }
-.primary:hover { background: #ffdb63; }
+.primary { background: var(--accent-grad); color: var(--on-accent); border-radius: 12px; box-shadow: var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, .3); }
+.primary:hover { filter: brightness(1.06); }
 .secondary { background: var(--s2); border-color: var(--line-2); color: var(--ink); font-weight: 500; }
 .secondary:hover { background: var(--s3); }
 .wide { width: 100%; }
-kbd { font: 11px var(--mono); padding: 0 4px; margin-left: 8px; border-radius: 4px; background: rgba(0, 0, 0, .12); border: 1px solid rgba(0, 0, 0, .18); }
+kbd { font: 11px var(--mono); padding: 0 4px; margin-left: 8px; border-radius: 4px; background: rgba(255, 255, 255, .18); border: 1px solid rgba(255, 255, 255, .3); }
 .notice { padding: 8px 12px; background: var(--s2); border: 1px solid var(--line); border-radius: 8px; font-size: 12px; margin: 12px 0 0; color: var(--ink-2); }
 .error { color: var(--ink); border-left: 2px solid var(--red); overflow-wrap: anywhere; }
 .pending { display: flex; justify-content: space-between; align-items: center; padding: 12px 0 0; font-size: 12px; color: var(--ink-2); }
