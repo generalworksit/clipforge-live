@@ -50,6 +50,19 @@ async function pairWithApp(requestedPort) {
     return {ok: true}; // never send the key in a runtime response
   } finally { pairing = false; }
 }
+const HOSTS = {"www.twitch.tv": "Twitch", "twitch.tv": "Twitch", "www.youtube.com": "YouTube", "youtube.com": "YouTube"};
+// Popup hint before Start: is the active tab a page capture can work on? Hostname and path only.
+function describeTab(tab) {
+  let url;
+  try { url = new URL(tab?.url || ""); } catch { return {ok: true, supported: false, reason: "Open a Twitch or YouTube live stream"}; }
+  const platform = HOSTS[url.hostname];
+  if (!platform) return {ok: true, supported: false, reason: "Open a Twitch or YouTube live stream"};
+  const path = url.pathname.split("/").filter(Boolean);
+  const stream = platform === "YouTube" ? path[0] === "watch" || path[0] === "live" : path.length === 1 && !["directory", "videos", "settings", "downloads", "search", "p"].includes(path[0]);
+  if (!stream) return {ok: true, supported: false, platform, reason: platform === "YouTube" ? "Open the stream itself, not the YouTube home page" : "Open a channel that is live"};
+  const title = (tab.title || "").replace(/\s*-\s*(YouTube|Twitch)\s*$/, "").slice(0, 80);
+  return {ok: true, supported: true, platform, title, channel: platform === "Twitch" ? path[0] : ""};
+}
 async function offscreen() {
   if (creating) return creating;
   creating = (async () => {
@@ -99,6 +112,7 @@ chrome.runtime.onMessage.addListener((msg, sender, respond) => {
       return pairWithApp(msg.port);
     }
     if (msg.type === "CHECK") { await checkConnection(); return {ok: true}; }
+    if (msg.type === "TAB") return describeTab((await chrome.tabs.query({active: true, currentWindow: true}))[0]);
     if (msg.type === "START") {
       if (starting) throw Error("Capture is starting. Please wait.");
       starting = true;
@@ -117,7 +131,7 @@ chrome.runtime.onMessage.addListener((msg, sender, respond) => {
         await chrome.storage.session.set({tabId: tab.id});
         try { await chrome.tabs.sendMessage(tab.id, {type: "START_CHAT"}); }
         catch (e) { await call("STOP"); await chrome.storage.session.remove("tabId"); throw e; }
-        await chrome.action.setBadgeBackgroundColor({color: "#8f762d"});
+        await chrome.action.setBadgeBackgroundColor({color: "#e5484d"});
         await chrome.action.setBadgeText({text: "REC"});
         return result;
       } finally { starting = false; }

@@ -1,15 +1,111 @@
+<div align="center">
+
+<img src="docs/icon.png" width="72" alt="">
+
 # ClipForge Live
 
-Chrome companion for YouTube and Twitch live highlights.
+**Catch it before chat erupts.**
+A Chrome extension that buffers the Twitch or YouTube stream you're watching and saves a clip when chat reacts, with the setup before and the ending after.
 
-1. Start ClipForge and load this folder from **chrome://extensions → Developer mode → Load unpacked**.
-2. Pin the extension and click **Connect app**.
-3. Open a livestream with its chat, keep the player visible, and click **Start capture**.
+Chrome 116+ · Manifest V3 · works with [ClipForge](https://github.com/generalworksit/clipforge) on your PC
 
-Highlights arrive in **Live clips** as clean MP4s. **Save moment** (`Alt+Shift+C`) marks one manually. Defaults: 20 seconds before the reaction, 12 seconds after it settles, maximum 90 seconds.
+</div>
 
-The local connection key is saved automatically. Advanced settings retain manual pairing and a custom port. This key is separate from the YouTube API key used by the experimental background monitor.
+<table>
+<tr>
+<td width="380"><img src="docs/popup.png" width="380" alt="ClipForge Live popup during a capture"></td>
+<td>
 
-If ClipForge is offline, finished captures wait locally; use **Retry uploads** after restarting it. Stop capture and send pending clips before reloading the extension. Then refresh the stream tab.
+**What you see while it runs**
 
-Keep the player visible and playing at normal speed. Ads and overlays inside the player are recorded. Detection estimates reactions; review every clip. Kick is not supported. Nothing is posted automatically.
+- **Signal graph.** The last 60 seconds of chat reaction, one bar per second. Bars turn yellow while a highlight is being collected
+- **Source line.** Which stream is being captured, so you never record the wrong tab
+- **This capture.** Every clip from the session with its time, reason, length and whether it reached ClipForge
+- **Connection dot** in the top bar: green when the app is reachable
+
+Nothing to watch closely though. Leave the tab open and clips arrive in ClipForge's **Live clips** inbox on their own.
+
+</td>
+</tr>
+</table>
+
+## How it works
+
+```
+stream tab ──► rolling video buffer (in the extension, ~2.5 min)
+     │
+chat lines ──► reaction detector ──► spike? keep 20 s before + until chat calms (12 s)
+                                         │
+                                         ▼
+                         clip sent to ClipForge on 127.0.0.1 ──► clean MP4 in Live clips
+```
+
+- The detector learns the chat's normal pace for 20 seconds, then looks for sudden jumps in messages, many different viewers reacting at once, and reaction words or emotes. Spam and repeated copy-paste are filtered out.
+- A clip keeps the lead-in, the moment, and the ending until chat settles, up to 90 seconds.
+- Press **Save moment** or `Alt+Shift+C` to clip something yourself at any time.
+- If ClipForge is closed, up to 6 finished clips wait inside the extension. Press **Retry uploads** once the app is back.
+
+## Install
+
+1. Install and start [ClipForge](https://github.com/generalworksit/clipforge). Double-clicking `run.bat` sets everything up.
+2. Get this extension: **Code → Download ZIP** and extract it, or `git clone https://github.com/generalworksit/clipforge-live.git`.
+3. Open `chrome://extensions`, turn on **Developer mode**, press **Load unpacked** and pick the folder.
+4. Pin **ClipForge Live** in the toolbar and press **Connect app** in its popup. The connection is saved, you do this once.
+
+Edge, Brave and other Chromium browsers should work the same way (tested in Chrome).
+
+## Use
+
+1. Open a live stream on Twitch or YouTube with its chat visible.
+2. Press **Start capture**. The badge shows **REC**.
+3. Keep the player visible and playing. Watch normally.
+4. Press **Stop** when you're done. Clips are already in ClipForge.
+
+## Settings
+
+| Setting | Default | What it changes |
+|---|---|---|
+| Sensitivity | Balanced | **Selective** waits for big sustained reactions, **More moments** catches smaller ones |
+| Lead-in | 20 s | How much of the setup is kept before the reaction |
+| Quiet ending | 12 s | How long chat must calm down before the clip ends |
+| Maximum | 90 s | Longest clip allowed |
+| Sound spikes | off | Also triggers on loud audio jumps. Music and ads can set it off |
+| Port | 8000 | Change only if ClipForge runs on another port |
+
+Changes apply to the next capture. The shortcut can be changed in `chrome://extensions/shortcuts`.
+
+## Privacy
+
+- Video and chat never leave your PC. The only network target is ClipForge on `127.0.0.1`.
+- Chat usernames are hashed with a random salt in the page and only counted, never stored or sent.
+- Pairing runs only when you press **Connect app**, and the connection key is kept in Chrome's local extension storage. Websites can't control the recorder.
+- Nothing is posted anywhere.
+
+| Permission | Why |
+|---|---|
+| `tabCapture` | record the stream tab you start capture on |
+| `activeTab`, `scripting` | read that tab's chat and player position, only after you press Start |
+| `offscreen` | keep the recorder running while the popup is closed |
+| `storage` | remember the connection and your settings |
+| `127.0.0.1`, `localhost` | send clips to ClipForge |
+
+## Limits
+
+- The stream tab has to stay open, visible and playing at normal speed. Ads and overlays inside the player are recorded too.
+- Kick isn't supported yet.
+- The signal measures how strongly chat reacts, not whether a clip will go viral. Review clips before posting.
+- Only capture streams you have the right to clip.
+
+## Development
+
+Plain JavaScript, no build step. Edit, then press the reload icon on the extension card.
+
+| File | Role |
+|---|---|
+| `background.js` | service worker: pairing, start/stop, tab checks, badge |
+| `offscreen.js` | recorder: tab capture, 4 s segments, rolling buffer, upload queue |
+| `detector.mjs` | chat reaction detector, shared with ClipForge's Auto monitor |
+| `content.js` | reads new chat lines and the player position on Twitch and YouTube |
+| `popup.*` | the popup UI |
+
+Tests live in the ClipForge repo (`tests/live_*.mjs`, `tests/browser_popup.py`, `tests/browser_live.py`).

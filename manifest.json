@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
   "name": "ClipForge Live",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "minimum_chrome_version": "116",
   "description": "Buffer the stream you watch and save chat-reaction highlights to your local ClipForge.",
   "permissions": ["activeTab", "tabCapture", "offscreen", "storage", "scripting"],
   "host_permissions": ["http://127.0.0.1/*", "http://localhost/*"],
   "background": {"service_worker": "background.js", "type": "module"},
-  "action": {"default_popup": "popup.html", "default_title": "ClipForge Live"},
+  "icons": {"16": "icons/icon-16.png", "32": "icons/icon-32.png", "48": "icons/icon-48.png", "128": "icons/icon-128.png"},
+  "action": {"default_popup": "popup.html", "default_title": "ClipForge Live", "default_icon": {"16": "icons/icon-16.png", "32": "icons/icon-32.png"}},
   "commands": {"save-moment": {"suggested_key": {"default": "Alt+Shift+C"}, "description": "Save a moment from the stream being captured"}}
 }

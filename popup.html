@@ -1,18 +1,26 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ClipForge Live</title><link rel="stylesheet" href="popup.css"></head>
 <body>
-<header class="topbar"><span class="brand"><i aria-hidden="true"></i>ClipForge <b>Live</b></span><a id="inbox" href="http://127.0.0.1:8000/#/live" target="_blank">Inbox</a></header>
+<header class="topbar">
+  <span class="brand"><img src="icons/icon-32.png" alt="" width="20" height="20">ClipForge <b>Live</b></span>
+  <span class="topbar-right"><span id="conn" class="conn" data-tone="idle"><i aria-hidden="true"></i><span id="conn-text">Checking…</span></span><a id="inbox" href="http://127.0.0.1:8000/#/live" target="_blank">Inbox</a></span>
+</header>
 <main>
 <section class="monitor" id="monitor" data-state="idle" aria-labelledby="state">
   <div class="monitor-top"><span class="status-label"><i class="status-dot" aria-hidden="true"></i><span id="phase">Ready</span></span><span id="elapsed">00:00</span></div>
+  <p id="source" class="source" hidden><span id="source-platform" class="platform"></span><span id="source-title"></span></p>
   <h1 id="state" role="status">Ready to capture</h1><p id="state-hint">Open a live stream with its chat, then start.</p>
-  <div class="signal-label"><span id="signal-label">Reaction signal</span><span id="signal-value">—</span></div>
-  <progress id="signal" max="100" value="0" aria-label="Reaction signal strength"></progress>
+  <div class="signal-label"><span id="signal-label">Reaction signal, last 60s</span><span id="signal-value">—</span></div>
+  <svg id="spark" class="spark" viewBox="0 0 348 44" preserveAspectRatio="none" role="img" aria-label="Reaction signal over the last minute"></svg>
   <div class="telemetry"><span><b id="buffered">0s</b> buffered</span><span><b id="rate">0</b> msg/s</span><span><b id="saved">0</b> sent</span></div>
 </section>
 <p id="error" class="notice error" role="alert" hidden></p><p id="notice" class="notice" role="status" hidden></p>
 <div class="capture-actions"><button id="start" class="primary">Start capture</button><button id="mark" class="primary" hidden>Save moment <kbd id="shortcut">Alt+Shift+C</kbd></button><button id="stop" class="secondary" hidden>Stop</button></div>
 <div id="pending-box" class="pending" hidden><span><b id="pending">0</b> clips waiting to send</span><button id="retry" class="text-button">Retry uploads</button></div>
+<section id="clips-box" class="clips" hidden aria-label="Clips from this capture">
+  <div class="section-title"><h2>This capture</h2><a id="clips-open" href="http://127.0.0.1:8000/#/live" target="_blank">Open inbox</a></div>
+  <ol id="clips"></ol>
+</section>
 <section class="detection-controls" aria-label="Detection sensitivity">
   <div class="section-title"><h2>Pick your moments</h2><span id="settings-state">Saved automatically</span></div>
   <div class="segmented" role="group" aria-label="Detection sensitivity">
@@ -33,5 +41,5 @@
     <div class="connect-row"><label class="field port">Port<input id="port" type="number" min="1024" max="65535" value="8000"></label><button id="save" class="secondary">Connect</button></div>
   </details>
 </details>
-<footer>Keep the live player visible and chat open.<br>Signal strength estimates a reaction, not virality.</footer>
+<footer>Keep the live player visible and chat open. Signal strength estimates a reaction, not virality.</footer>
 </main><script src="popup.js"></script></body></html>

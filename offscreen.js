@@ -3,6 +3,7 @@ import {Detector} from "./detector.mjs";
 let media, output, audio, analyser, video, canvas, recorder, drawTimer, tickTimer, splitTimer;
 let detector, started = 0, segments = [], ready = [], player, playerAt = 0, sourceUrl, title, config;
 let recording = false, stopping = false, uploading = false, status = {}, error = "", saved = 0;
+let history = [], log = []; // last 60s of signal, and this capture's clips, for the popup
 const now = () => (performance.now() - started) / 1000;
 const dbReady = new Promise((resolve, reject) => {
   const request = indexedDB.open("clipforge-live", 1);
@@ -34,6 +35,7 @@ async function upload() {
       const data = await response.json();
       if (!response.ok) throw Error(data.detail || `Upload failed (${response.status})`);
       await dbAction("readwrite", (store) => store.delete(item.id)); saved++; error = "";
+      const entry = log.find((e) => e.id === item.id); if (entry) entry.state = "sent";
     }
   } catch (e) { error = `Clip kept for retry: ${e.message}`; }
   finally { uploading = false; if (ready.length && !error) queueSave(); }
@@ -50,6 +52,8 @@ async function saveReady() {
       trigger: clip.trigger, captured_at: new Date().toISOString(),
       segments: chosen.map((s) => ({start: s.start, end: s.end}))};
     await dbAction("readwrite", (store) => store.put({id, metadata, parts: chosen.map((s) => s.blob)}));
+    log.unshift({id, at: Math.round(clip.trigger ?? clip.start), reason: clip.reason, length: Math.round(metadata.end - metadata.start), state: "waiting"});
+    log.length = Math.min(log.length, 6);
     ready.shift();
     upload();
   }
@@ -84,7 +88,7 @@ async function start(message) {
   if (ready.length) throw Error("Retry pending clips before starting another capture.");
   if ((await pending()).length >= 6) throw Error("Retry the six pending clips before capturing more.");
   ({player, sourceUrl, title, config} = message); detector = new Detector(config.options);
-  segments = []; ready = []; error = ""; status = {}; recorder = null; started = performance.now(); playerAt = now();
+  segments = []; ready = []; error = ""; status = {}; history = []; log = []; recorder = null; started = performance.now(); playerAt = now();
   try {
     media = await navigator.mediaDevices.getUserMedia({audio: {mandatory: {chromeMediaSource: "tab", chromeMediaSourceId: message.streamId}},
       video: {mandatory: {chromeMediaSource: "tab", chromeMediaSourceId: message.streamId, maxWidth: 1920, maxHeight: 1080, maxFrameRate: 30}}});
@@ -114,6 +118,7 @@ async function start(message) {
       analyser.getFloatTimeDomainData(samples);
       const rms = Math.sqrt(samples.reduce((sum, n) => sum + n * n, 0) / samples.length);
       status = detector.tick(at, rms);
+      history.push({s: status.score || 0, a: detector.active ? 1 : 0}); if (history.length > 60) history.shift();
       if (status.clip) { ready.push(status.clip); queueSave(); }
     }, 1000);
     media.getVideoTracks()[0].onended = () => { error = "The captured tab ended."; stop(); };
@@ -160,7 +165,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, respond) => {
         warmupRemaining: status.warmupRemaining || 0, cooldownRemaining: status.cooldownRemaining || 0,
         tailRemaining: detector?.active ? Math.max(0, Math.ceil(detector.options.tail - (now() - detector.active.last))) : 0,
         reason: detector?.active?.reason || "", accepted: detector?.accepted || 0,
-        lastMessageAge: detector?.lastMessage == null ? null : now() - detector.lastMessage};
+        lastMessageAge: detector?.lastMessage == null ? null : now() - detector.lastMessage,
+        history, clips: log.map(({id, ...entry}) => entry)};
     }
     return {ok: true};
   })().then(respond, (e) => respond({ok: false, error: e.message})); return true;
