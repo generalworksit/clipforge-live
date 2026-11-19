@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ClipForge Live</title><link rel="stylesheet" href="popup.css"></head>
+<body>
+<header class="topbar"><span class="brand"><i aria-hidden="true"></i>ClipForge <b>Live</b></span><a id="inbox" href="http://127.0.0.1:8000/#/live" target="_blank">Inbox</a></header>
+<main>
+<section class="monitor" id="monitor" data-state="idle" aria-labelledby="state">
+  <div class="monitor-top"><span class="status-label"><i class="status-dot" aria-hidden="true"></i><span id="phase">Ready</span></span><span id="elapsed">00:00</span></div>
+  <h1 id="state" role="status">Ready to capture</h1><p id="state-hint">Open a live stream with its chat, then start.</p>
+  <div class="signal-label"><span id="signal-label">Reaction signal</span><span id="signal-value">—</span></div>
+  <progress id="signal" max="100" value="0" aria-label="Reaction signal strength"></progress>
+  <div class="telemetry"><span><b id="buffered">0s</b> buffered</span><span><b id="rate">0</b> msg/s</span><span><b id="saved">0</b> sent</span></div>
+</section>
+<p id="error" class="notice error" role="alert" hidden></p><p id="notice" class="notice" role="status" hidden></p>
+<div class="capture-actions"><button id="start" class="primary">Start capture</button><button id="mark" class="primary" hidden>Save moment <kbd id="shortcut">Alt+Shift+C</kbd></button><button id="stop" class="secondary" hidden>Stop</button></div>
+<div id="pending-box" class="pending" hidden><span><b id="pending">0</b> clips waiting to send</span><button id="retry" class="text-button">Retry uploads</button></div>
+<section class="detection-controls" aria-label="Detection sensitivity">
+  <div class="section-title"><h2>Pick your moments</h2><span id="settings-state">Saved automatically</span></div>
+  <div class="segmented" role="group" aria-label="Detection sensitivity">
+    <button data-sensitivity="low" aria-pressed="false">Selective</button><button data-sensitivity="normal" aria-pressed="true">Balanced</button><button data-sensitivity="high" aria-pressed="false">More moments</button>
+  </div>
+  <p id="mode-hint" class="hint">A balance of clear reactions and smaller highlights.</p>
+</section>
+<details id="timing"><summary><span>Timing & sound</span><span id="timing-summary">20s before · 12s after</span></summary>
+  <div class="timing-grid"><label>Lead-in <span><input id="pre" type="number" min="5" max="40" value="20"> s</span></label><label>Quiet ending <span><input id="tail" type="number" min="5" max="25" value="12"> s</span></label><label>Maximum <span><input id="max" type="number" min="45" max="120" value="90"> s</span></label></div>
+  <label class="check"><input id="sound" type="checkbox"><span>Also listen for sound spikes<small>Experimental · music and ads can trigger it.</small></span></label>
+  <p class="hint">Timing and sensitivity changes apply to the next capture.</p>
+</details>
+<details id="connection"><summary><span>ClipForge connection</span><span id="connection-state">Not paired</span></summary>
+  <p class="hint">ClipForge must be running on this PC. Connecting opens it once to pair.</p>
+  <button id="pair" class="secondary wide">Connect app</button>
+  <details id="manual"><summary><span>Use a pairing key instead</span><span></span></summary>
+    <label class="field">Pairing key<input id="token" type="password" autocomplete="off" placeholder="From ClipForge, Live clips, Setup"></label>
+    <div class="connect-row"><label class="field port">Port<input id="port" type="number" min="1024" max="65535" value="8000"></label><button id="save" class="secondary">Connect</button></div>
+  </details>
+</details>
+<footer>Keep the live player visible and chat open.<br>Signal strength estimates a reaction, not virality.</footer>
+</main><script src="popup.js"></script></body></html>
