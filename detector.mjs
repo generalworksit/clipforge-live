@@ -8,6 +8,12 @@ export function settings(input = {}) {
 export function reaction(text) {
   return /\b(l+o+l+|lma+o+|lmfa+o+|rofl|omegalul|lulw?|kekw|kek|pog(?:gers|champ)?|monkas|wtf|holy|hype|mdr|ptdr|(?:a?ha){2,}|lo+ol|no+ way|lets? go+|w{2,})\b|😂|🤣|💀|😭|🔥|😱|хаха|ахах/iu.test(text);
 }
+export function nomination(text) {
+  const value = String(text).toLowerCase().replace(/[’‘]/g, "'");
+  // Conservative intent only: requests are audience evidence, not proof of an event.
+  if (/\b(?:don't|dont|not|never|stop|no|pas|jamais)\b|(?:^|\s)не\s/iu.test(value)) return false;
+  return /\b(?:clip\s+(?:that|this|it)|save\s+(?:that|this)\s+(?:clip|moment)|clippez?\s+(?:ça|ca)|fais?\s+un\s+clip)\b|(?:^|\s)(?:сделай(?:те)?\s+клип|клипни|это\s+в\s+клип)(?:\s|[!.?,]|$)/iu.test(value);
+}
 const clamp = (n, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, n));
 const mean = (values) => values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
 const tuning = {
@@ -32,7 +38,7 @@ export class Detector {
       const previous = this.repeats.get(author);
       if (previous?.text === text && at - previous.at < 8) continue;
       this.repeats.set(author, {text, at}); counts.set(author, (counts.get(author) || 0) + 1);
-      this.messages.push({at, author, reaction: reaction(text)}); this.lastMessage = at; this.accepted++;
+      this.messages.push({at, author, reaction: reaction(text), nomination: nomination(text)}); this.lastMessage = at; this.accepted++;
     }
     for (const [author, last] of this.repeats) if (at - last.at > 60) this.repeats.delete(author);
     while (this.repeats.size > 5000) this.repeats.delete(this.repeats.keys().next().value);
@@ -55,6 +61,9 @@ export class Detector {
     const recent = this.messages, fresh = recent.filter((m) => m.at > this.lastTick);
     const unique = new Set(recent.map((m) => m.author)).size;
     const reactionUsers = new Set(recent.filter((m) => m.reaction).map((m) => m.author)).size;
+    const requestingUsers = new Set(recent.filter((m) => m.nomination).map((m) => m.author)).size;
+    const requestShare = unique ? requestingUsers / unique : 0;
+    const baseRequests = mean(this.history.map(x => x.requests || 0));
     const rate = recent.length / 5, share = unique ? reactionUsers / unique : 0;
     const baseline = mean(this.history.map((x) => x.rate)), baseShare = mean(this.history.filter((x) => x.share !== null).map((x) => x.share));
     const variance = mean(this.history.map((x) => (x.rate - baseline) ** 2));
@@ -65,10 +74,11 @@ export class Detector {
     // A busy channel can react strongly without increasing its total message rate.
     const shift = enough && share >= 0.45 && share - baseShare >= t.shift;
     const volume = unique >= t.authors * 2 && rate >= 3 && lift >= t.lift + 1.5 && z >= t.z + 1;
-    const chatHot = surge || shift || volume;
+    const requested = requestingUsers >= t.authors && requestShare >= .25 && requestShare - baseRequests >= .2;
+    const chatHot = surge || shift || volume || requested;
     const soundHot = this.options.sound && rms > 0.08 && rms > this.level * 3.5;
     const warmed = at - this.started >= Math.max(20, this.options.pre);
-    const signals = [surge && "chat_surge", shift && "reaction_shift", volume && !surge && "crowd_surge", soundHot && "sound_spike"].filter(Boolean);
+    const signals = [surge && "chat_surge", shift && "reaction_shift", volume && !surge && "crowd_surge", soundHot && "sound_spike", requested && "viewer_requests"].filter(Boolean);
     const score = chatHot ? Math.round(35 + 20 * clamp((lift - 1) / 2) + 25 * clamp((share - baseShare) / 0.6) + 20 * clamp(unique / 12))
       : soundHot ? Math.round(55 + 25 * clamp(rms / Math.max(this.level, 0.01) / 10)) : 0;
     const evidence = {version: 2, score, unique, reactionShare: Number(share.toFixed(2)), rateLift: Number(Math.min(lift, 1000).toFixed(2)), signals};
@@ -85,13 +95,13 @@ export class Detector {
       this.candidate.hits++; this.candidate.last = at;
       const decisive = type === "chat" && surge && reactionUsers >= 8 && unique >= 12 && share >= 0.6 && lift >= 3;
       if (decisive || this.candidate.hits >= (type === "sound" ? 2 : t.confirm)) {
-        const reason = type === "sound" ? "Sound spike" : shift && !surge ? "More viewers reacting" : volume && !surge ? "Sudden crowd activity" : "Chat reaction spike";
+        const reason = type === "sound" ? "Sound spike" : requested && !surge && !shift && !volume ? "Viewers asked for a clip" : shift && !surge ? "More viewers reacting" : volume && !surge ? "Sudden crowd activity" : "Chat reaction spike";
         this.trigger(at, reason, evidence, this.candidate.onset);
       }
     } else if (this.candidate && at - this.candidate.last > 3) this.candidate = null;
     // Learn a changed pace during long events, avoiding repeated clips of a permanently busier room.
     if (at - this.started >= 5 && (!this.active || !warmed || at - this.active.trigger > 15)) {
-      this.history.push({rate, share: unique ? share : null}); if (this.history.length > 60) this.history.shift();
+      this.history.push({rate, share: unique ? share : null, requests: requestShare}); if (this.history.length > 60) this.history.shift();
     }
     this.level = this.level * 0.95 + Math.max(0, rms) * 0.05;
     this.lastTick = at;
