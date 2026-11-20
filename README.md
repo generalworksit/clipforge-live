@@ -45,6 +45,7 @@ chat lines ──► reaction detector ──► spike? keep 20 s before + until
 
 - The detector learns the chat's normal pace for 20 seconds, then looks for sudden jumps in messages, many different viewers reacting at once, and reaction words or emotes. Spam and repeated copy-paste are filtered out.
 - A clip keeps the lead-in, the moment, and the ending until chat settles, up to 90 seconds.
+- A sudden group of different viewers asking "clip that" can flag a moment too. English, French and Russian requests are recognized; negated requests and repeat spam are filtered.
 - Press **Save moment** or `Alt+Shift+C` to clip something yourself at any time.
 - If ClipForge is closed, up to 6 finished clips wait inside the extension. Press **Retry uploads** once the app is back.
 

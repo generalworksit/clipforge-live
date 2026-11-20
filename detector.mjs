@@ -83,7 +83,9 @@ export class Detector {
       : soundHot ? Math.round(55 + 25 * clamp(rms / Math.max(this.level, 0.01) / 10)) : 0;
     const evidence = {version: 2, score, unique, reactionShare: Number(share.toFixed(2)), rateLift: Number(Math.min(lift, 1000).toFixed(2)), signals};
     this.lastEvidence = evidence;
-    const freshChat = new Set(fresh.map((m) => m.author)).size >= 2;
+    // A request-only candidate needs new requests, not unrelated messages arriving later.
+    const requestOnly = requested && !surge && !shift && !volume;
+    const freshChat = new Set(fresh.filter(m => !requestOnly || m.nomination).map((m) => m.author)).size >= 2;
     const ongoing = fresh.some((m) => m.reaction) && enough && share >= Math.max(0.25, baseShare + 0.1);
     if (this.active) {
       // A lower continuation threshold preserves the ending; stale messages don't extend it.
