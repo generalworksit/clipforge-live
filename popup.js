@@ -54,7 +54,7 @@ function mode() {
   $("timing-summary").textContent = `${$("pre").value}s before · ${$("tail").value}s after`;
 }
 async function save() {
-  const options = {sensitivity, sound: $("sound").checked};
+  const options = {sensitivity, sound: $("sound").checked, listen: !$("silent").checked};
   for (const id of ["pre", "tail", "max", "port"]) {
     if (!$(id).value || !$(id).checkValidity()) throw Error(`Enter ${id === "pre" ? "lead-in" : id === "tail" ? "ending" : id === "max" ? "maximum" : "port"} between ${$(id).min} and ${$(id).max}.`);
     if (id !== "port") options[id] = Number($(id).value);
@@ -66,6 +66,7 @@ async function save() {
 }
 function draw(s) {
   latest = s;
+  $("audio-status").textContent=s.recording ? s.audio_level > .002 ? "Audio is reaching the recorder" : "No sound detected right now" : "";
   const active = s.recording && s.active;
   $("monitor").dataset.state = active ? "moment" : s.recording ? "recording" : "idle";
   $("phase").textContent = s.stopping ? "Finishing capture" : active ? "Collecting highlight" : s.recording ? "Capture running" : "Capture stopped";
@@ -117,12 +118,13 @@ document.querySelectorAll("[data-sensitivity]").forEach((button) => button.oncli
   sensitivity = button.dataset.sensitivity; mode(); try { await save(); actionError = ""; } catch(e) { actionError = e.message; showError(actionError); }
 });
 for (const id of ["pre","tail","max","sound"]) $(id).onchange = async () => { try { await save(); actionError = ""; } catch(e) { actionError = e.message; showError(actionError); } };
+$("silent").onchange=async()=>{try{await save();const r=await chrome.runtime.sendMessage({type:"LISTEN",enabled:!$("silent").checked});if(!r?.ok)throw Error(r?.error||"Could not change listening.");}catch(e){showError(e.message);}};
 (async () => {
   try {
     const s = await chrome.storage.local.get(["token","port","options"]);
     $("token").value = s.token || ""; $("port").value = s.port || 8000;
     for (const id of ["pre","tail","max"]) if (s.options?.[id]) $(id).value = s.options[id];
-    sensitivity = modeText[s.options?.sensitivity] ? s.options.sensitivity : "normal"; $("sound").checked = !!s.options?.sound; mode();
+    sensitivity = modeText[s.options?.sensitivity] ? s.options.sensitivity : "normal"; $("sound").checked = !!s.options?.sound; $("silent").checked=s.options?.listen===false;mode();
     setInbox(s.port); $("connection").open = !s.token; if (!s.token) setConn("Not paired");
     const keys = await chrome.commands.getAll(); const shortcut = keys.find((k) => k.name === "save-moment")?.shortcut;
     $("shortcut").textContent = shortcut || "Set shortcut in Chrome";

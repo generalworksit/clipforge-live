@@ -112,6 +112,12 @@ chrome.runtime.onMessage.addListener((msg, sender, respond) => {
       return pairWithApp(msg.port);
     }
     if (msg.type === "CHECK") { await checkConnection(); return {ok: true}; }
+    if (msg.type === "LISTEN") {
+      if (typeof msg.enabled !== "boolean") throw Error("Invalid listening setting.");
+      const saved=await chrome.storage.local.get("options");
+      await chrome.storage.local.set({options:{...saved.options,listen:msg.enabled}});
+      return call("LISTEN",{enabled:msg.enabled});
+    }
     if (msg.type === "TAB") return describeTab((await chrome.tabs.query({active: true, currentWindow: true}))[0]);
     if (msg.type === "START") {
       if (starting) throw Error("Capture is starting. Please wait.");

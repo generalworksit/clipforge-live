@@ -74,9 +74,11 @@ Edge, Brave and other Chromium browsers should work the same way (tested in Chro
 | Quiet ending | 12 s | How long chat must calm down before the clip ends |
 | Maximum | 90 s | Longest clip allowed |
 | Sound spikes | off | Also triggers on loud audio jumps. Music and ads can set it off |
+| Silent monitoring | off | Mutes speaker playback while preserving captured audio; leave the website player unmuted |
 | Port | 8000 | Change only if ClipForge runs on another port |
 
 Changes apply to the next capture. The shortcut can be changed in `chrome://extensions/shortcuts`.
+Silent monitoring changes immediately. For multiple recordings without tabs, use ClipForge's YouTube **Auto monitor**; the extension itself still captures one tab at a time.
 
 ## Privacy
 

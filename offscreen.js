@@ -1,6 +1,6 @@
 import {Detector} from "./detector.mjs";
 
-let media, output, audio, analyser, video, canvas, recorder, drawTimer, tickTimer, splitTimer;
+let media, output, audio, analyser, video, canvas, recorder, drawTimer, tickTimer, splitTimer, listenGain;
 let detector, started = 0, segments = [], ready = [], player, playerAt = 0, sourceUrl, title, config;
 let recording = false, stopping = false, uploading = false, status = {}, error = "", saved = 0;
 let history = [], log = []; // last 60s of signal, and this capture's clips, for the popup
@@ -92,7 +92,9 @@ async function start(message) {
   try {
     media = await navigator.mediaDevices.getUserMedia({audio: {mandatory: {chromeMediaSource: "tab", chromeMediaSourceId: message.streamId}},
       video: {mandatory: {chromeMediaSource: "tab", chromeMediaSourceId: message.streamId, maxWidth: 1920, maxHeight: 1080, maxFrameRate: 30}}});
-    audio = new AudioContext(); const node = audio.createMediaStreamSource(media); node.connect(audio.destination);
+    audio = new AudioContext(); const node = audio.createMediaStreamSource(media);
+    listenGain = audio.createGain();listenGain.gain.value=config.options?.listen===false?0:1;
+    node.connect(listenGain);listenGain.connect(audio.destination);
     analyser = audio.createAnalyser(); analyser.fftSize = 1024; node.connect(analyser);
     video = document.createElement("video"); video.muted = true; video.srcObject = media; await video.play();
     canvas = document.createElement("canvas"); canvas.width = 1280; canvas.height = Math.round(1280 / player.aspect / 2) * 2;
@@ -117,7 +119,7 @@ async function start(message) {
       }
       analyser.getFloatTimeDomainData(samples);
       const rms = Math.sqrt(samples.reduce((sum, n) => sum + n * n, 0) / samples.length);
-      status = detector.tick(at, rms);
+      status = detector.tick(at, rms);status.audioLevel=rms;
       history.push({s: status.score || 0, a: detector.active ? 1 : 0}); if (history.length > 60) history.shift();
       if (status.clip) { ready.push(status.clip); queueSave(); }
     }, 1000);
@@ -145,6 +147,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, respond) => {
   (async () => {
     if (msg.type === "START") return start(msg);
     if (msg.type === "STOP") return stop();
+    if (msg.type === "LISTEN") {
+      if (typeof msg.enabled !== "boolean") throw Error("Invalid listening setting.");
+      if (listenGain && audio?.state !== "closed") listenGain.gain.value=msg.enabled?1:0;
+      return {ok:true};
+    }
     if (msg.type === "CHAT" && recording) {
       if (msg.player && msg.topFrame) {
         if (msg.player.url !== sourceUrl) { error = "Stream page changed. Start a new capture for this video."; await stop(); return; }
@@ -166,6 +173,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, respond) => {
         tailRemaining: detector?.active ? Math.max(0, Math.ceil(detector.options.tail - (now() - detector.active.last))) : 0,
         reason: detector?.active?.reason || "", accepted: detector?.accepted || 0,
         lastMessageAge: detector?.lastMessage == null ? null : now() - detector.lastMessage,
+        listening: listenGain?.gain.value !== 0, audio_level: recording ? status.audioLevel || 0 : 0,
         history, clips: log.map(({id, ...entry}) => entry)};
     }
     return {ok: true};
