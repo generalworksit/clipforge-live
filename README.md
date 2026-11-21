@@ -56,6 +56,8 @@ chat lines ──► reaction detector ──► spike? keep 20 s before + until
 3. Open `chrome://extensions`, turn on **Developer mode**, press **Load unpacked** and pick the folder.
 4. Pin **ClipForge Live** in the toolbar and press **Connect app** in its popup. The connection is saved, you do this once.
 
+Connection details show each check and the last verified time. A manual key is saved only after **Verify key** succeeds. After an update, use **Reload extension** if prompted, then reopen the popup. You can also reload it at `chrome://extensions`.
+
 Edge, Brave and other Chromium browsers should work the same way (tested in Chrome).
 
 ## Use

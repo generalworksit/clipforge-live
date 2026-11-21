@@ -3,7 +3,7 @@
 <body>
 <header class="topbar">
   <span class="brand"><img src="icons/icon-32.png" alt="" width="20" height="20">ClipForge <b>Live</b></span>
-  <span class="topbar-right"><span id="conn" class="conn" data-tone="idle"><i aria-hidden="true"></i><span id="conn-text">Checking…</span></span><a id="inbox" href="http://127.0.0.1:8000/#/live" target="_blank">Inbox</a></span>
+  <span class="topbar-right"><button id="conn" class="conn" data-tone="idle" aria-label="Connection details"><i aria-hidden="true"></i><span id="conn-text">Checking…</span></button><a id="inbox" href="http://127.0.0.1:8000/#/live" target="_blank">Inbox</a></span>
 </header>
 <main>
 <section class="monitor" id="monitor" data-state="idle" aria-labelledby="state">
@@ -16,6 +16,7 @@
 </section>
 <p id="error" class="notice error" role="alert" hidden></p><p id="notice" class="notice" role="status" hidden></p>
 <div class="capture-actions"><button id="start" class="primary">Start capture</button><button id="mark" class="primary" hidden>Save moment <kbd id="shortcut">Alt+Shift+C</kbd></button><button id="stop" class="secondary" hidden>Stop</button></div>
+<a id="shorts-open" class="shorts-link" href="http://127.0.0.1:8000/#/live?tools=1" target="_blank">Make captioned Shorts →</a>
 <div id="pending-box" class="pending" hidden><span><b id="pending">0</b> clips waiting to send</span><button id="retry" class="text-button">Retry uploads</button></div>
 <section id="clips-box" class="clips" hidden aria-label="Clips from this capture">
   <div class="section-title"><h2>This capture</h2><a id="clips-open" href="http://127.0.0.1:8000/#/live" target="_blank">Open inbox</a></div>
@@ -36,11 +37,15 @@
   <p class="hint">Timing and sensitivity changes apply to the next capture.</p>
 </details>
 <details id="connection"><summary><span>ClipForge connection</span><span id="connection-state">Not paired</span></summary>
+  <p id="connection-detail" class="hint" role="status" aria-live="polite">Connect to verify that ClipForge can receive clips.</p>
+  <button id="reload-extension" class="secondary wide" hidden>Reload extension</button>
   <p class="hint">ClipForge must be running on this PC. Connecting opens it once to pair.</p>
   <button id="pair" class="secondary wide">Connect app</button>
+  <button id="check-connection" class="secondary wide">Check connection</button>
+  <label class="field port">App port<input id="port" type="number" min="1024" max="65535" value="8000"></label>
   <details id="manual"><summary><span>Use a pairing key instead</span><span></span></summary>
     <label class="field">Pairing key<input id="token" type="password" autocomplete="off" placeholder="From ClipForge, Live clips, Setup"></label>
-    <div class="connect-row"><label class="field port">Port<input id="port" type="number" min="1024" max="65535" value="8000"></label><button id="save" class="secondary">Connect</button></div>
+    <button id="save" class="secondary wide">Verify key</button>
   </details>
 </details>
 <footer>Keep the live player visible and chat open. Signal strength estimates a reaction, not virality.</footer>

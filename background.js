@@ -1,4 +1,6 @@
 let starting = false, pairing = false, creating;
+const WORKER_VERSION = "1.4.1";
+const progress = (phase, detail) => chrome.storage.local.set({connectionCheck:{phase, detail, at:Date.now()}});
 
 async function waitForAppTab(id) {
   return new Promise((resolve, reject) => {
@@ -17,6 +19,7 @@ async function pairWithApp(requestedPort) {
   if (pairing) throw Error("Connection is already in progress.");
   pairing = true;
   try {
+    await progress("checking", "Checking the app on this PC…");
     const stored = await chrome.storage.local.get("port");
     const port = Number(requestedPort ?? stored.port ?? 8000);
     if (!Number.isInteger(port) || port < 1024 || port > 65535) throw Error("Enter a port between 1024 and 65535.");
@@ -29,6 +32,7 @@ async function pairWithApp(requestedPort) {
       setup = await response.json();
     } catch { throw Error("Start ClipForge, then click Connect app again."); }
     if (setup.port !== port) throw Error("This port is not serving ClipForge.");
+    await progress("pairing", "App found. Requesting its connection key…");
     const tabs = await chrome.tabs.query({url: `${base}/*`});
     const tab = tabs.find(t => new URL(t.url).pathname === "/") || await chrome.tabs.create({url: `${base}/#/live`, active: false});
     await waitForAppTab(tab.id);
@@ -44,11 +48,13 @@ async function pairWithApp(requestedPort) {
     const data = results[0]?.result;
     if (!data || data.error) throw Error(data?.error || "Could not connect. Reload the extension and try again.");
     if (data.port !== port || typeof data.token !== "string" || !/^[A-Za-z0-9_-]{32,128}$/.test(data.token)) throw Error("ClipForge returned an invalid connection key.");
-    const check = await fetch(`${base}/api/live/health`, {headers: {Authorization: `Bearer ${data.token}`}, signal: AbortSignal.timeout(8000)});
-    if (!check.ok) throw Error("Connection could not be verified. Try again.");
+    await progress("verifying", "Key received. Verifying permission to send clips…");
+    await checkConnection(data);
     await chrome.storage.local.set({token: data.token, port});
+    await progress("connected", `Verified connection · port ${port}`);
     return {ok: true}; // never send the key in a runtime response
-  } finally { pairing = false; }
+  } catch(e) { await progress("error",e.message); throw e; }
+  finally { pairing = false; }
 }
 const HOSTS = {"www.twitch.tv": "Twitch", "twitch.tv": "Twitch", "www.youtube.com": "YouTube", "youtube.com": "YouTube"};
 // Popup hint before Start: is the active tab a page capture can work on? Hostname and path only.
@@ -72,9 +78,9 @@ async function offscreen() {
   try { await creating; } finally { creating = null; }
 }
 async function call(type, data = {}) { await offscreen(); return chrome.runtime.sendMessage({target: "recorder", type, ...data}); }
-async function checkConnection() {
-  const config = await chrome.storage.local.get(["token", "port", "options"]);
-  const port = Number(config.port || 8000);
+async function checkConnection(candidate) {
+  const config = candidate || await chrome.storage.local.get(["token", "port", "options"]);
+  const port = Number(config.port ?? 8000);
   if (!Number.isInteger(port) || port < 1024 || port > 65535) throw Error("Invalid ClipForge port.");
   if (!config.token) throw Error("Click Connect app in the extension first.");
   const base = `http://127.0.0.1:${port}`;
@@ -82,6 +88,9 @@ async function checkConnection() {
   try { check = await fetch(`${base}/api/live/health`, {headers: {Authorization: `Bearer ${config.token}`}, signal: AbortSignal.timeout(8000)}); }
   catch { throw Error("Cannot reach ClipForge. Start the app and check the port."); }
   if (!check.ok) throw Error("Connection key was not accepted. Click Connect app again.");
+  let body;
+  try { body = await check.json(); } catch { throw Error("This port did not return a ClipForge connection check."); }
+  if (body.ok !== true || body.version !== 1) throw Error("This port is not serving a compatible ClipForge app.");
   return {...config, base};
 }
 chrome.runtime.onMessage.addListener((msg, sender, respond) => {
@@ -105,13 +114,32 @@ chrome.runtime.onMessage.addListener((msg, sender, respond) => {
     }).catch(() => {}); return;
   }
   // Control messages must originate from our own extension pages, never a stream page.
-  if (sender.tab || !sender.url?.startsWith(chrome.runtime.getURL(""))) return;
+  if (sender.url !== chrome.runtime.getURL("popup.html")) return;
   (async () => {
+    if (msg.type === "HELLO") return {ok:true,version:WORKER_VERSION};
     if (msg.type === "PAIR") {
       if (sender.url !== chrome.runtime.getURL("popup.html")) throw Error("Connect from the ClipForge popup.");
       return pairWithApp(msg.port);
     }
-    if (msg.type === "CHECK") { await checkConnection(); return {ok: true}; }
+    if (msg.type === "CHECK") {
+      try { await progress("verifying","Checking the saved connection…"); const c=await checkConnection(); await progress("connected",`Verified connection · port ${c.port || 8000}`); return {ok:true}; }
+      catch(e) { await progress("error",e.message); throw e; }
+    }
+    if (msg.type === "PAIR_KEY") {
+      if (pairing) throw Error("Connection is already in progress.");
+      pairing=true;
+      try {
+        if ((await call("STATUS"))?.recording) throw Error("Stop capture before changing the connection.");
+        const token=String(msg.token||"").trim(),port=Number(msg.port);
+        if (!/^[A-Za-z0-9_-]{32,128}$/.test(token)) throw Error("Paste the complete pairing key from Live clips.");
+        await progress("verifying","Verifying this key with ClipForge…");
+        await checkConnection({token,port});
+        await chrome.storage.local.set({token,port});
+        await progress("connected",`Verified connection · port ${port}`);
+        return {ok:true};
+      } catch(e) { await progress("error",e.message); throw e; }
+      finally { pairing=false; }
+    }
     if (msg.type === "LISTEN") {
       if (typeof msg.enabled !== "boolean") throw Error("Invalid listening setting.");
       const saved=await chrome.storage.local.get("options");
@@ -148,7 +176,7 @@ chrome.runtime.onMessage.addListener((msg, sender, respond) => {
       await chrome.storage.session.remove("tabId");
     }
     if (["STATUS", "STOP", "MARK", "RETRY"].includes(msg.type)) return call(msg.type);
-    throw Error("Unknown command.");
+    throw Error("The extension needs a reload. Open chrome://extensions, reload ClipForge Live, then reopen this popup.");
   })().then(respond, (error) => respond({ok: false, error: error.message}));
   return true;
 });
